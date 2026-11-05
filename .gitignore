@@ -1,0 +1,25 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Medical datasets
+data/
+*.dcm
+
+# Trained models
+*.pth
+*.pt
+*.ckpt
+
+# Secrets
+.env
+
+# VS Code
+.vscode/
