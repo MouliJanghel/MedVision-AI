@@ -151,7 +151,7 @@ cd MedVision-AI
 On Windows PowerShell:
 
 ```powershell
-.\venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
 If setting up for the first time, create a virtual environment and install the project's required Python dependencies.
@@ -185,6 +185,7 @@ cd frontend
 npm install
 npm run dev
 ```
+Open the local URL displayed in the Vite terminal.
 
 Open the local frontend address displayed by Vite, typically:
 
@@ -216,3 +217,40 @@ AI & Machine Learning Engineering
 ## License
 
 This project is developed for educational and research purposes. Add an appropriate open-source license before permitting reuse or redistribution.
+## Installation
+
+
+## Backend Setup
+
+Clone the repository and install backend dependencies:
+
+```powershell
+git clone https://github.com/MouliJanghel/MedVision-AI.git
+cd MedVision-AI
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+```
+
+Start the backend:
+
+```powershell
+python -m uvicorn src.main:app --host 127.0.0.1 --port 8002
+```
+
+- Backend: http://127.0.0.1:8002
+- API documentation: http://127.0.0.1:8002/docs
+
+## Frontend Setup
+
+Navigate to the frontend directory and install dependencies:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the local URL displayed in the Vite terminal.

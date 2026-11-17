@@ -1,4 +1,3 @@
-
 import base64
 import io
 import os
@@ -8,7 +7,10 @@ import uuid
 import nibabel as nib
 import numpy as np
 import torch
-
+from pathlib import Path
+import requests
+from dotenv import load_dotenv
+from fastapi.responses import Response
 from nibabel.processing import resample_from_to
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -42,6 +44,59 @@ from src.database.db import (
     get_scans,
     get_audit_logs
 )
+
+
+# =====================================
+# ORTHANC DICOM SERVER CONFIGURATION
+# =====================================
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
+ORTHANC_URL = os.getenv(
+    "ORTHANC_URL",
+    "http://127.0.0.1:8042"
+).rstrip("/")
+
+ORTHANC_USERNAME = os.getenv("ORTHANC_USERNAME", "admin")
+ORTHANC_PASSWORD = os.getenv("ORTHANC_PASSWORD", "")
+ORTHANC_TIMEOUT = 20
+
+
+def orthanc_request(path, method="GET", **kwargs):
+
+    if not ORTHANC_PASSWORD:
+        raise HTTPException(
+            status_code=503,
+            detail="Orthanc password is not configured in .env"
+        )
+
+    try:
+        response = requests.request(
+            method,
+            f"{ORTHANC_URL}{path}",
+            auth=(ORTHANC_USERNAME, ORTHANC_PASSWORD),
+            timeout=ORTHANC_TIMEOUT,
+            **kwargs
+        )
+
+        if response.status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail="Requested DICOM resource not found"
+            )
+
+        response.raise_for_status()
+        return response
+
+    except HTTPException:
+        raise
+
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to communicate with Orthanc server"
+        )
 
 
 # =====================================
@@ -257,7 +312,6 @@ def create_color_heatmap(cam):
 
     cam = np.clip(cam, 0, 1)
 
-    # Generate a Jet-style RGB heatmap
     red = np.clip(1.5 - np.abs(4 * cam - 3), 0, 1)
     green = np.clip(1.5 - np.abs(4 * cam - 2), 0, 1)
     blue = np.clip(1.5 - np.abs(4 * cam - 1), 0, 1)
@@ -297,7 +351,6 @@ def generate_gradcam(image_tensor, original_image, predicted_class):
 
         model.zero_grad(set_to_none=True)
 
-        # Enable gradients specifically for Grad-CAM
         with torch.enable_grad():
 
             outputs = model(image_tensor)
@@ -314,18 +367,15 @@ def generate_gradcam(image_tensor, original_image, predicted_class):
         feature_maps = activations[0]
         grads = gradients[0]
 
-        # Calculate channel importance
         weights = grads.mean(
             dim=(2, 3),
             keepdim=True
         )
 
-        # Weighted feature-map combination
         cam = (weights * feature_maps).sum(dim=1)
 
         cam = torch.relu(cam)
 
-        # Resize to original model input dimensions
         cam = torch.nn.functional.interpolate(
             cam.unsqueeze(1),
             size=(224, 224),
@@ -335,27 +385,22 @@ def generate_gradcam(image_tensor, original_image, predicted_class):
 
         cam = cam[0, 0]
 
-        # Normalize heatmap
         cam = cam - cam.min()
         cam = cam / (cam.max() + 1e-8)
 
         cam_array = cam.detach().cpu().numpy()
 
-        # Generate colored heatmap
         heatmap_image = create_color_heatmap(cam_array)
 
-        # Prepare original image
         original_image = original_image.convert("RGB")
         original_image = original_image.resize((224, 224))
 
-        # Overlay heatmap on original X-ray
         overlay = Image.blend(
             original_image,
             heatmap_image,
             alpha=0.40
         )
 
-        # Convert overlay to Base64
         buffer = io.BytesIO()
 
         overlay.save(
@@ -401,14 +446,12 @@ async def predict(file: UploadFile = File(...)):
 
     try:
 
-        # Read image safely
         image = Image.open(
             io.BytesIO(content)
         ).convert("RGB")
 
         image_tensor = preprocess(image).unsqueeze(0).to(device)
 
-        # AI prediction
         with torch.inference_mode():
 
             outputs = model(image_tensor)
@@ -427,7 +470,6 @@ async def predict(file: UploadFile = File(...)):
                 0, predicted_class
             ].item()
 
-        # Generate Grad-CAM separately with gradients enabled
         heatmap_base64 = generate_gradcam(
             image_tensor,
             image,
@@ -441,7 +483,6 @@ async def predict(file: UploadFile = File(...)):
             2
         )
 
-        # Save scan in SQLite
         scan_id = create_scan(
             filename=filename,
             scan_type="chest_xray",
@@ -763,12 +804,82 @@ async def segment(file: UploadFile = File(...)):
             np.count_nonzero(restored_mask)
         )
 
+        # =====================================
+        # GENERATE CT SLICE PREVIEW
+        # =====================================
+
+        # Find the axial slice with the largest
+        # predicted spleen area.
+
+        slice_areas = np.count_nonzero(
+            restored_mask,
+            axis=(0, 1)
+        )
+
+        preview_slice_index = int(
+            np.argmax(slice_areas)
+        )
+
+        # Extract original CT slice
+        ct_slice = original_ct.get_fdata(
+            dtype=np.float32
+        )[:, :, preview_slice_index]
+
+        # Extract corresponding predicted mask
+        mask_slice = (
+            restored_mask[:, :, preview_slice_index] > 0
+        )
+
+        # Convert CT values into 8-bit grayscale
+        window_min = -150
+        window_max = 250
+
+        ct_display = np.clip(
+            (ct_slice - window_min) /
+            (window_max - window_min) * 255,
+            0,
+            255
+        ).astype(np.uint8)
+
+        # Convert grayscale image to RGB
+        preview_rgb = np.stack(
+            [ct_display, ct_display, ct_display],
+            axis=-1
+        )
+
+        # Highlight predicted spleen pixels in red
+        preview_rgb[mask_slice] = (
+            0.6 * preview_rgb[mask_slice]
+            + 0.4 * np.array([255, 40, 40])
+        ).astype(np.uint8)
+
+        # Create preview image
+        preview_image = Image.fromarray(
+            preview_rgb,
+            mode="RGB"
+        )
+
+        # Encode preview as PNG
+        preview_buffer = io.BytesIO()
+
+        preview_image.save(
+            preview_buffer,
+            format="PNG"
+        )
+
+        preview_base64 = base64.b64encode(
+            preview_buffer.getvalue()
+        ).decode("utf-8")
+
+        # =====================================
+        # SAVE SEGMENTATION RECORD
+        # =====================================
+
         relative_mask_path = os.path.relpath(
             output_path,
             project_root
         )
 
-        # Save segmentation record
         scan_id = create_scan(
             filename=filename,
             scan_type="spleen_ct",
@@ -776,20 +887,34 @@ async def segment(file: UploadFile = File(...)):
             mask_path=relative_mask_path
         )
 
+        # =====================================
+        # RETURN SEGMENTATION RESULT
+        # =====================================
+
         return {
             "scan_id": scan_id,
             "mask_id": mask_id,
             "filename": filename,
             "segmentation": "Completed",
             "segmented_region": "Spleen",
+
             "original_ct_shape": list(original_shape),
             "processed_mask_shape": list(mask_array.shape),
             "restored_mask_shape": list(restored_mask.shape),
+
             "foreground_voxels": foreground_voxels,
+
             "mask_file_format": "NIfTI (.nii.gz)",
             "mask_saved": True,
             "saved_file": relative_mask_path,
+
             "download_url": f"/download-mask/{mask_id}",
+
+            # New preview fields
+            "preview_slice_base64": preview_base64,
+            "preview_slice_index": preview_slice_index,
+            "preview_format": "PNG",
+
             "message": (
                 "3D CT segmentation completed and restored "
                 "to original CT space."
@@ -810,5 +935,93 @@ async def segment(file: UploadFile = File(...)):
 
     finally:
 
-        if input_path and os.path.exists(input_path):
-            os.remove(input_path)
+       if input_path and os.path.exists(input_path):
+            try:
+                os.remove(input_path)
+            except PermissionError:
+                print(
+                    f"Warning: Could not remove temporary file: {input_path}"
+                )
+
+
+# =====================================
+# ORTHANC DICOM API ENDPOINTS
+# =====================================
+
+@app.get("/orthanc/health")
+def orthanc_health():
+
+    response = orthanc_request("/system")
+    info = response.json()
+
+    return {
+        "status": "connected",
+        "orthanc_name": info.get("Name"),
+        "orthanc_version": info.get("Version")
+    }
+
+
+@app.get("/orthanc/instances")
+def orthanc_instances():
+
+    instance_ids = orthanc_request("/instances").json()
+
+    return {
+        "total_instances": len(instance_ids),
+        "instances": instance_ids
+    }
+
+
+@app.get("/orthanc/instances/{instance_id}")
+def orthanc_instance_metadata(instance_id: str):
+
+    instance = orthanc_request(
+        f"/instances/{instance_id}"
+    ).json()
+
+    tags = orthanc_request(
+        f"/instances/{instance_id}/tags?simplify"
+    ).json()
+
+    selected_fields = [
+        "PatientID",
+        "PatientName",
+        "Modality",
+        "StudyDate",
+        "StudyInstanceUID",
+        "SeriesInstanceUID",
+        "SOPInstanceUID",
+        "Rows",
+        "Columns",
+        "InstanceNumber"
+    ]
+
+    metadata = {
+        key: tags.get(key)
+        for key in selected_fields
+        if tags.get(key) is not None
+    }
+
+    return {
+        "instance_id": instance_id,
+        "parent_study": instance.get("ParentStudy"),
+        "parent_series": instance.get("ParentSeries"),
+        "metadata": metadata
+    }
+
+
+@app.get("/orthanc/instances/{instance_id}/file")
+def orthanc_download_instance(instance_id: str):
+
+    response = orthanc_request(
+        f"/instances/{instance_id}/file"
+    )
+
+    return Response(
+        content=response.content,
+        media_type="application/dicom",
+        headers={
+            "Content-Disposition":
+            f'attachment; filename="{instance_id}.dcm"'
+        }
+    )
