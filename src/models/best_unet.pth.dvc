@@ -1,0 +1,5 @@
+outs:
+- md5: 9562bbeb9283074e49ad5d31c13265af
+  size: 19257136
+  hash: md5
+  path: best_unet.pth

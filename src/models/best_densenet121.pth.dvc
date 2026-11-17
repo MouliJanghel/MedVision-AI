@@ -1,0 +1,5 @@
+outs:
+- md5: 9b0bbdacf33c9fa3c68355e65f8fff17
+  size: 28435222
+  hash: md5
+  path: best_densenet121.pth
