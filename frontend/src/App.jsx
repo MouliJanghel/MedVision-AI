@@ -20,6 +20,8 @@ import {
   HardDrive,
 } from "lucide-react";
 import "./App.css";
+import heroImage from "./assets/medvision-hero.png";
+
 
 const API = "http://127.0.0.1:8002";
 
@@ -559,6 +561,43 @@ function App() {
             Refresh
           </button>
         </header>
+                {/* Medical AI Hero */}
+        <section className="hero-section">
+          <div className="hero-content">
+            <span className="hero-label">
+              <Activity size={15} />
+              INTELLIGENT MEDICAL IMAGING
+            </span>
+
+            <h2>
+              See Beyond the Scan.
+              <span> Understand with AI.</span>
+            </h2>
+
+            <p>
+              Explore AI-assisted chest X-ray analysis, 3D CT
+              segmentation and medical imaging workflows in one
+              integrated platform.
+            </p>
+
+            <div className="hero-features">
+              <span><CheckCircle2 size={16} /> X-ray Analysis</span>
+              <span><CheckCircle2 size={16} /> 3D Segmentation</span>
+              <span><CheckCircle2 size={16} /> DICOM Archive</span>
+            </div>
+
+            <a href="#upload" className="hero-button">
+              Start Scan Analysis <Upload size={17} />
+            </a>
+          </div>
+
+          <div className="hero-visual">
+            <img
+              src={heroImage}
+              alt="Medical AI visualization showing a holographic chest and lungs"
+            />
+          </div>
+        </section>
 
         {error && (
           <div className="alert error-alert">

@@ -1082,3 +1082,276 @@ tbody tr:hover {
     width: 100%;
   }
 }
+/* ================================
+   MEDVISION AI HERO SECTION
+================================ */
+
+.hero-section {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  min-height: 340px;
+  margin: 10px 0 30px;
+  padding: 34px;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 80% 50%, rgba(20, 139, 219, 0.25), transparent 42%),
+    linear-gradient(120deg, #071a35, #0b3158 65%, #082342);
+  color: white;
+  box-shadow: 0 18px 45px rgba(12, 43, 79, 0.16);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 470px;
+}
+
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #67d9ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 18px;
+}
+
+.hero-content h2 {
+  font-size: clamp(27px, 3vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+  margin: 0 0 17px;
+  color: #ffffff;
+}
+
+.hero-content h2 span {
+  display: block;
+  color: #65d9ff;
+}
+
+.hero-content > p {
+  max-width: 420px;
+  color: #c2d7ed;
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 22px;
+}
+
+.hero-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.hero-features span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d9edff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hero-features svg {
+  color: #55e2ca;
+}
+
+.hero-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 19px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #16b8e9, #2878ed);
+  color: white;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(19, 157, 230, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(19, 157, 230, 0.4);
+}
+
+.hero-visual {
+  position: relative;
+  height: 285px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+  filter: drop-shadow(0 0 24px rgba(22, 177, 255, 0.2));
+}
+
+/* Responsive hero */
+
+@media (max-width: 950px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+    padding: 28px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-visual {
+    height: 260px;
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-section {
+    padding: 23px 18px;
+    border-radius: 17px;
+  }
+
+  .hero-content h2 {
+    font-size: 29px;
+  }
+
+  .hero-visual {
+    height: 190px;
+  }
+
+  .hero-features {
+    gap: 9px;
+  }
+}
+/* Fix heading and text contrast in upload sections */
+
+.upload-section .section-heading h2,
+.ct-section .section-heading h2,
+.upload-area h3 {
+  color: #172f49 !important;
+}
+
+.upload-section .section-heading p,
+.ct-section .section-heading p,
+.upload-area p {
+  color: #647b91 !important;
+}
+
+.upload-area {
+  color: #172f49;
+}
+
+.upload-area .choose-file {
+  color: #0876ba !important;
+}
+
+.upload-area .scan-tag {
+  color: #2475a8 !important;
+}
+
+.ct-section .ct-result-heading h3,
+.ct-section .ct-preview-card h3 {
+  color: #172f49 !important;
+}
+/* ==================================
+   GLOBAL DASHBOARD TEXT CONTRAST FIX
+================================== */
+
+/* Main dashboard headings */
+.main-content > .topbar h1 {
+  color: #172b45 !important;
+}
+
+.main-content > .topbar .subtitle {
+  color: #64748b !important;
+}
+
+/* Section headings */
+.panel .section-heading h2,
+.panel .section-heading h3 {
+  color: #172b45 !important;
+}
+
+.panel .section-heading p {
+  color: #64748b !important;
+}
+
+/* Statistics cards */
+.stat-card {
+  background: #ffffff;
+}
+
+.stat-card p {
+  color: #64748b !important;
+}
+
+.stat-card h2 {
+  color: #172b45 !important;
+}
+
+/* Result summaries and important numbers */
+.result-summary h3,
+.dicom-count-row h3,
+.ct-mask-details strong,
+.metadata-item strong {
+  color: #172b45 !important;
+}
+
+.result-label,
+.ct-mask-details span,
+.metadata-item span {
+  color: #64748b !important;
+}
+
+/* Tables */
+.panel table th {
+  color: #52677d !important;
+}
+
+.panel table td {
+  color: #263b50 !important;
+}
+
+/* Empty states and captions */
+.panel .empty-state,
+.panel .dicom-note,
+.panel .ct-preview-caption {
+  color: #64748b !important;
+}
+
+/* Keep hero and sidebar text white */
+.hero-section,
+.sidebar {
+  color: #ffffff;
+}
+
+.hero-section h2,
+.sidebar .brand h2 {
+  color: #ffffff;
+}
+/* DICOM metadata visibility fix */
+.metadata-item {
+  background: #172b45 !important;
+  border: 1px solid #29445f !important;
+}
+
+.metadata-item span {
+  color: #a9bfd3 !important;
+}
+
+.metadata-item strong {
+  color: #ffffff !important;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
